@@ -1,0 +1,10 @@
+lib
+build
+
+*.iml
+*.ipr
+*.iws
+
+gradle.properties
+
+.gradle
