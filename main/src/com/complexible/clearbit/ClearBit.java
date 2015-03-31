@@ -106,7 +106,10 @@ public class ClearBit implements AutoCloseable {
 		try {
 			aResponse = mClient.execute(aRequest);
 
-			if (aResponse.getStatusLine().getStatusCode() == 202) {
+			if (aResponse.getStatusLine().getStatusCode() == 404) {
+				return Optional.absent();
+			}
+			else if (aResponse.getStatusLine().getStatusCode() == 202) {
 				LOGGER.warn("Finding person {} resulted in an async result.  Try back to ClearBit later", theEmail);
 				return Optional.absent();
 			}
