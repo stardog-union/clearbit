@@ -39,11 +39,11 @@ import org.slf4j.LoggerFactory;
  * @since   0.1
  * @version 0.1
  */
-public class ClearBit implements AutoCloseable {
+public class ClearBitAPI implements AutoCloseable {
 	/**
 	 * the logger
 	 */
-	private static final Logger LOGGER = LoggerFactory.getLogger(ClearBit.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ClearBitAPI.class);
 
 	private final CloseableHttpClient mClient;
 
@@ -63,11 +63,11 @@ public class ClearBit implements AutoCloseable {
 		MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd\'T\'HH:mm:ss"));
 	}
 
-	public ClearBit(final String theKey) {
+	public ClearBitAPI(final String theKey) {
 		this(theKey, false /* use streaming */);
 	}
 
-	public ClearBit(final String theKey, final boolean theUseStreamingAPI) {
+	public ClearBitAPI(final String theKey, final boolean theUseStreamingAPI) {
 		mKey = Preconditions.checkNotNull(theKey);
 		mStreaming = theUseStreamingAPI;
 

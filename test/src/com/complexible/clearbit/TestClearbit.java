@@ -35,7 +35,7 @@ public class TestClearbit {
 
 	@Test
 	public void testGetPerson() throws Exception {
-		try (ClearBit aClearbit = new ClearBit(getKey())) {
+		try (ClearBitAPI aClearbit = new ClearBitAPI(getKey())) {
 			Person aPerson = aClearbit.findPerson("christianbaroni@me.com").get();
 
 			assertEquals(new Name("Christian Baroni", "Christian", "Baroni"), aPerson.getName());
@@ -44,7 +44,7 @@ public class TestClearbit {
 
 	@Test
 	public void testGetCompany() throws Exception {
-		try (ClearBit aClearbit = new ClearBit(getKey())) {
+		try (ClearBitAPI aClearbit = new ClearBitAPI(getKey())) {
 			Company aCompany = aClearbit.findCompany("stripe.com").get();
 
 			assertEquals("Stripe", aCompany.getName());
@@ -59,14 +59,14 @@ public class TestClearbit {
 
 	@Test
 	public void testMissingPerson() throws Exception {
-		try (ClearBit aClearbit = new ClearBit(getKey())) {
+		try (ClearBitAPI aClearbit = new ClearBitAPI(getKey())) {
 			assertFalse(aClearbit.findCompany("employee@notarealcompany.com").isPresent());
 		}
 	}
 
 	@Test
 	public void testMissingCompany() throws Exception {
-		try (ClearBit aClearbit = new ClearBit(getKey())) {
+		try (ClearBitAPI aClearbit = new ClearBitAPI(getKey())) {
 			assertFalse(aClearbit.findCompany("notarealcompany.com").isPresent());
 		}
 	}
