@@ -28,14 +28,20 @@ sourceSets {
 
 group = "com.complexible.clearbit"
 version = "0.1"
-projectDescription = "Java implementation of the Clearbit API"
-projectUrl = "https://github.com/complexible/clearbit"
 
-sourceCompatibility = '1.6'
-targetCompatibility = '1.6'
+ext {
+	projectDescription = "Java implementation of the Clearbit API"
+	projectUrl = "https://github.com/complexible/clearbit"
+}
+
+sourceCompatibility = '1.7'
+targetCompatibility = '1.7'
 
 repositories {
 	mavenCentral()
+	maven {
+		url "maven.stardog.com"
+	}
 	maven {
 		url artifactoryUrl
 		credentials {
@@ -43,6 +49,30 @@ repositories {
 			password artifactoryPassword
 		}
 	}
+}
+
+dependencies {
+	compile ("com.google.guava:guava:18.0") {
+		exclude group: "com.google.code.findbugs"
+	}
+
+	compile "org.apache.httpcomponents:httpclient:4.4"
+	compile "org.apache.httpcomponents:httpmime:4.4"
+
+	compile "com.fasterxml.jackson.core:jackson-core:2.3.3"
+	compile "com.fasterxml.jackson.core:jackson-databind:2.3.3"
+
+	compile "org.slf4j:slf4j-api:1.7.7"
+	compile "org.slf4j:slf4j-jdk14:1.7.7"
+
+	compile "com.complexible.common:cp-common-http:1.0"
+
+	testCompile 'junit:junit:4.11'
+}
+
+
+tasks.withType(Test) {
+	systemProperties = System.getProperties()
 }
 
 if (project.hasProperty('artifactoryUrl')
