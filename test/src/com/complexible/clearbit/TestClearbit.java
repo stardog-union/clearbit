@@ -28,7 +28,7 @@ import static org.junit.Assert.assertFalse;
  * @since   0.1
  * @version 0.1
  */
-public class ClearBitTests {
+public class TestClearbit {
 	private String getKey() {
 		return System.getProperty("clearbit.key");
 	}
