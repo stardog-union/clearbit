@@ -26,17 +26,19 @@ import static org.junit.Assert.assertFalse;
  *
  * @author  Michael Grove
  * @since   0.1
- * @version 0.1
+ * @version 0.2
  */
-public class TestClearbit {
-	private String getKey() {
+public abstract class EnrichmentAPITests {
+	protected final String getKey() {
 		return System.getProperty("clearbit.key");
 	}
 
+	protected abstract EnrichmentAPI createAPI();
+
 	@Test
 	public void testGetPerson() throws Exception {
-		try (Clearbit aClearbit = new Clearbit(getKey())) {
-			Person aPerson = aClearbit.findPerson("christianbaroni@me.com").get();
+		try (EnrichmentAPI aClearbit = createAPI()) {
+			Person aPerson = aClearbit.person("christianbaroni@me.com").lookup().get();
 
 			assertEquals(new Name("Christian Baroni", "Christian", "Baroni"), aPerson.getName());
 		}
@@ -44,11 +46,11 @@ public class TestClearbit {
 
 	@Test
 	public void testGetCompany() throws Exception {
-		try (Clearbit aClearbit = new Clearbit(getKey())) {
-			Company aCompany = aClearbit.findCompany("stripe.com").get();
+		try (EnrichmentAPI aClearbit = createAPI()) {
+			Company aCompany = aClearbit.company("stripe.com").lookup().get();
 
 			assertEquals("Stripe", aCompany.getName());
-			assertEquals("http://stripe.com", aCompany.getURL());
+			assertEquals("https://stripe.com", aCompany.getURL());
 		}
 	}
 
@@ -59,15 +61,29 @@ public class TestClearbit {
 
 	@Test
 	public void testMissingPerson() throws Exception {
-		try (Clearbit aClearbit = new Clearbit(getKey())) {
-			assertFalse(aClearbit.findCompany("employee@notarealcompany.com").isPresent());
+		try (EnrichmentAPI aClearbit = createAPI()) {
+			assertFalse(aClearbit.person("employee@notarealcompany.com").lookup().isPresent());
+		}
+	}
+
+	@Test
+	public void testInvalidPerson() throws Exception {
+		try (EnrichmentAPI aClearbit = createAPI()) {
+			assertFalse(aClearbit.person("employee").lookup().isPresent());
 		}
 	}
 
 	@Test
 	public void testMissingCompany() throws Exception {
-		try (Clearbit aClearbit = new Clearbit(getKey())) {
-			assertFalse(aClearbit.findCompany("notarealcompany.com").isPresent());
+		try (EnrichmentAPI aClearbit = createAPI()) {
+			assertFalse(aClearbit.company("notarealcompany.com").lookup().isPresent());
+		}
+	}
+
+	@Test
+	public void testInvalidCompany() throws Exception {
+		try (EnrichmentAPI aClearbit = createAPI()) {
+			assertFalse(aClearbit.company("not a domain").lookup().isPresent());
 		}
 	}
 }

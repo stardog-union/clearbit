@@ -1,34 +1,15 @@
-/*
- * Copyright (c) 2015 Complexible Inc. <http://complexible.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.complexible.clearbit;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.Objects;
+import java.util.Optional;
 
-import com.complexible.common.http.ApacheHttp;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,20 +17,14 @@ import org.slf4j.LoggerFactory;
  * <p></p>
  *
  * @author  Michael Grove
- * @since   0.1
- * @version 0.1
+ * @since   0.2
+ * @version 0.2
  */
-public class Clearbit implements AutoCloseable {
+public final class Clearbit {
 	/**
 	 * the logger
 	 */
 	private static final Logger LOGGER = LoggerFactory.getLogger(Clearbit.class);
-
-	private final CloseableHttpClient mClient;
-
-	private final String mKey;
-
-	private final boolean mStreaming;
 
 	private static final ObjectMapper MAPPER;
 
@@ -63,61 +38,49 @@ public class Clearbit implements AutoCloseable {
 		MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd\'T\'HH:mm:ss"));
 	}
 
-	public Clearbit(final String theKey) {
-		this(theKey, false /* use streaming */);
-	}
-
-	public Clearbit(final String theKey, final boolean theUseStreamingAPI) {
-		mKey = Preconditions.checkNotNull(theKey);
-		mStreaming = theUseStreamingAPI;
-
-		mClient = HttpClientBuilder.create()
-		                             .setUserAgent("clearbit.api")
-		                             .setConnectionManager(new PoolingHttpClientConnectionManager())
-		                             .build();
-	}
-
 	/**
-	 * @{inheritDoc}
+	 * no instances
 	 */
-	@Override
-	public void close() throws IOException {
-		mClient.close();
+	private Clearbit() {
+		throw new AssertionError();
 	}
 
-	/**
-	 * Look up a person by email.
-	 *
-	 * @param theEmail  the email to lookup
-	 * @return          the person, if found, or an empty optional if the lookup was not successful or returned an
-	 *                  async result
-	 *
-	 * @throws IOException  if there was an error looking up the person
-	 */
-	public Optional<Person> findPerson(final String theEmail) throws IOException {
-		final HttpGet aRequest = new HttpGet(String.format("https://person%s.clearbit.com/v1/people/email/%s",
-		                                                   mStreaming ? "-stream" : "",
-		                                                   theEmail));
+	public static CloseableHttpResponse checkForErrors(final CloseableHttpResponse theResponse) throws IOException {
+		final int aCode = theResponse.getStatusLine().getStatusCode();
 
-		ApacheHttp.HttpRequests.header(aRequest, "Authorization", "Bearer " + mKey);
+		if (aCode == HttpStatus.SC_BAD_REQUEST
+		    || aCode == HttpStatus.SC_UNPROCESSABLE_ENTITY
+			|| aCode >= HttpStatus.SC_INTERNAL_SERVER_ERROR) {
 
-		HttpResponse aResponse = null;
+			final Error aError = MAPPER.readValue(theResponse.getEntity().getContent(), Error.class);
 
-		try {
-			aResponse = mClient.execute(aRequest);
-
-			if (aResponse.getStatusLine().getStatusCode() == 404) {
-				return Optional.absent();
+			if (aCode == HttpStatus.SC_BAD_REQUEST) {
+				throw new IllegalArgumentException(aError.getMessage());
 			}
-			else if (aResponse.getStatusLine().getStatusCode() == 202) {
-				LOGGER.warn("Finding person {} resulted in an async result.  Try back to ClearBit later", theEmail);
-				return Optional.absent();
+			else {
+				throw new RuntimeException(aError.getMessage());
 			}
-			else if (aResponse.getStatusLine().getStatusCode() != 200) {
-				throw new IOException(String.format("There was an error finding the person, result code was %s and the message was %s",
-				                                    aResponse.getStatusLine().getStatusCode(),
-				                                    aResponse.getStatusLine().getReasonPhrase()));
+		}
+
+		return theResponse;
+	}
+
+	public static Optional<Person> person(final CloseableHttpResponse theResponse) throws IOException {
+		try (CloseableHttpResponse aResponse = theResponse) {
+
+			if (aResponse.getStatusLine().getStatusCode() == HttpStatus.SC_NOT_FOUND) {
+				return Optional.empty();
 			}
+			else if (aResponse.getStatusLine().getStatusCode() ==  HttpStatus.SC_ACCEPTED) {
+				LOGGER.warn("Finding person resulted in an async result.  Try back to ClearBit later");
+				return Optional.empty();
+			}
+			else if (aResponse.getStatusLine().getStatusCode() == HttpStatus.SC_UNPROCESSABLE_ENTITY) {
+				LOGGER.warn("Person was unprocessable");
+				return Optional.empty();
+			}
+
+			checkForErrors(theResponse);
 
 			Person aPerson = MAPPER.readValue(aResponse.getEntity().getContent(), Person.class);
 
@@ -125,96 +88,23 @@ public class Clearbit implements AutoCloseable {
 
 			return Optional.of(aPerson);
 		}
-		finally {
-			ApacheHttp.HttpResponses.consumeQuietly(aResponse);
-		}
 	}
 
-	private void scrubMissingValues(final Person thePerson) {
-		if (thePerson.getGithub().getHandle() == null) {
-			thePerson.setGithub(null);
-		}
-
-		if (thePerson.getTwitter().getHandle() == null) {
-			thePerson.setTwitter(null);
-		}
-
-		if (thePerson.getFacebook().getHandle() == null) {
-			thePerson.setFacebook(null);
-		}
-
-		if (thePerson.getLinkedin().getHandle() == null) {
-			thePerson.setLinkedin(null);
-		}
-
-		if (thePerson.getGoogleplus().getHandle() == null) {
-			thePerson.setGoogleplus(null);
-		}
-
-		if (thePerson.getFoursquare().getHandle() == null) {
-			thePerson.setFoursquare(null);
-		}
-
-		if (thePerson.getAngellist().getHandle() == null) {
-			thePerson.setAngellist(null);
-		}
-
-		if (thePerson.getAboutme().getHandle() == null) {
-			thePerson.setAboutme(null);
-		}
-	}
-
-	private void scrubMissingValues(final Company theCompany) {
-		if (theCompany.getTwitter().getHandle() == null) {
-			theCompany.setTwitter(null);
-		}
-
-		if (theCompany.getFacebook().getHandle() == null) {
-			theCompany.setFacebook(null);
-		}
-
-		if (theCompany.getLinkedin().getHandle() == null) {
-			theCompany.setLinkedin(null);
-		}
-
-		if (theCompany.getAngellist().getHandle() == null) {
-			theCompany.setAngellist(null);
-		}
-	}
-
-	/**
-	 * Look up a company by their domain.
-	 *
-	 * @param theEmail  the domain to lookup
-	 * @return          the company, if found, or an empty optional if the lookup was not successful or returned an
-	 *                  async result
-	 *
-	 * @throws IOException  if there was an error looking up the person
-	 */
-	public Optional<Company> findCompany(final String theDomain) throws IOException {
-		final HttpGet aRequest = new HttpGet(String.format("https://company%s.clearbit.com/v1/companies/domain/%s",
-		                                     mStreaming ? "-stream" : "",
-		                                     theDomain));
-
-		ApacheHttp.HttpRequests.header(aRequest, "Authorization", "Bearer " + mKey);
-
-		HttpResponse aResponse = null;
-
-		try {
-			aResponse = mClient.execute(aRequest);
-
-			if (aResponse.getStatusLine().getStatusCode() == 404) {
-				return Optional.absent();
+	public static Optional<Company> company(final CloseableHttpResponse theResponse) throws IOException {
+		try (CloseableHttpResponse aResponse = theResponse) {
+			if (aResponse.getStatusLine().getStatusCode() == HttpStatus.SC_NOT_FOUND) {
+				return Optional.empty();
 			}
-			else if (aResponse.getStatusLine().getStatusCode() == 202) {
-				LOGGER.warn("Finding person {} resulted in an async result.  Try back to ClearBit later", theDomain);
-				return Optional.absent();
+			else if (aResponse.getStatusLine().getStatusCode() == HttpStatus.SC_ACCEPTED) {
+				LOGGER.warn("Finding company resulted in an async result.  Try back to ClearBit later");
+				return Optional.empty();
 			}
-			else if (aResponse.getStatusLine().getStatusCode() != 200) {
-				throw new IOException(String.format("There was an error finding the company, result code was %s and the message was %s",
-				                                    aResponse.getStatusLine().getStatusCode(),
-				                                    aResponse.getStatusLine().getReasonPhrase()));
+			else if (aResponse.getStatusLine().getStatusCode() == HttpStatus.SC_UNPROCESSABLE_ENTITY) {
+				LOGGER.warn("Company was unprocessable");
+				return Optional.empty();
 			}
+
+			checkForErrors(theResponse);
 
 			final Company aCompany = MAPPER.readValue(aResponse.getEntity().getContent(), Company.class);
 
@@ -222,8 +112,115 @@ public class Clearbit implements AutoCloseable {
 
 			return Optional.of(aCompany);
 		}
-		finally {
-			ApacheHttp.HttpResponses.consumeQuietly(aResponse);
+	}
+
+	protected static Person scrubMissingValues(final Person thePerson) {
+		if (thePerson.getGithub() != null && thePerson.getGithub().getHandle() == null) {
+			thePerson.setGithub(null);
+		}
+
+		if (thePerson.getTwitter() != null && thePerson.getTwitter().getHandle() == null) {
+			thePerson.setTwitter(null);
+		}
+
+		if (thePerson.getFacebook() != null && thePerson.getFacebook().getHandle() == null) {
+			thePerson.setFacebook(null);
+		}
+
+		if (thePerson.getLinkedin() != null && thePerson.getLinkedin().getHandle() == null) {
+			thePerson.setLinkedin(null);
+		}
+
+		if (thePerson.getGoogleplus() != null && thePerson.getGoogleplus().getHandle() == null) {
+			thePerson.setGoogleplus(null);
+		}
+
+		if (thePerson.getFoursquare() != null && thePerson.getFoursquare().getHandle() == null) {
+			thePerson.setFoursquare(null);
+		}
+
+		if (thePerson.getAngellist() != null && thePerson.getAngellist().getHandle() == null) {
+			thePerson.setAngellist(null);
+		}
+
+		if (thePerson.getAboutme() != null && thePerson.getAboutme().getHandle() == null) {
+			thePerson.setAboutme(null);
+		}
+
+		if (thePerson.getCompany() != null) {
+			if (thePerson.getCompany().getName() == null) {
+				thePerson.setCompany(null);
+			}
+			else {
+				thePerson.setCompany(scrubMissingValues(thePerson.getCompany()));
+			}
+		}
+
+		return thePerson;
+	}
+
+	private static Company scrubMissingValues(final Company theCompany) {
+		if (theCompany.getTwitter() != null && theCompany.getTwitter().getHandle() == null) {
+			theCompany.setTwitter(null);
+		}
+
+		if (theCompany.getFacebook() != null && theCompany.getFacebook().getHandle() == null) {
+			theCompany.setFacebook(null);
+		}
+
+		if (theCompany.getLinkedin() != null && theCompany.getLinkedin().getHandle() == null) {
+			theCompany.setLinkedin(null);
+		}
+
+		if (theCompany.getAngellist() != null && theCompany.getAngellist().getHandle() == null) {
+			theCompany.setAngellist(null);
+		}
+
+		return theCompany;
+	}
+
+	public static final class Error {
+		private String mType;
+		private String mMessage;
+
+		public String getMessage() {
+			return mMessage;
+		}
+
+		public void setMessage(final String theMessage) {
+			mMessage = theMessage;
+		}
+
+		public String getType() {
+			return mType;
+		}
+
+		public void setType(final String theType) {
+			mType = theType;
+		}
+
+		/**
+		 * {@inheritDoc}
+		 */
+		@Override
+		public boolean equals(final Object atheO) {
+			if (this == atheO) {
+				return true;
+			}
+			if (atheO == null || getClass() != atheO.getClass()) {
+				return false;
+			}
+			final Error aError = (Error) atheO;
+			return Objects.equals(mType, aError.mType) &&
+			       Objects.equals(mMessage, aError.mMessage);
+		}
+
+		/**
+		 * {@inheritDoc}
+		 */
+		@Override
+		public int hashCode() {
+			return Objects.hash(mType, mMessage);
 		}
 	}
 }

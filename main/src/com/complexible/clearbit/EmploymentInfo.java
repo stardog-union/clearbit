@@ -23,12 +23,13 @@ import com.google.common.base.Objects;
  *
  * @author  Michael Grove
  * @since   0.1
- * @version 0.1
+ * @version 0.2
  */
 public final class EmploymentInfo {
 	private String mName;
 	private String mTitle;
 	private String mDomain;
+	private String mSeniority;
 
 	public String getDomain() {
 		return mDomain;
@@ -54,12 +55,20 @@ public final class EmploymentInfo {
 		mTitle = theTitle;
 	}
 
+	public String getSeniority() {
+		return mSeniority;
+	}
+
+	public void setSeniority(final String theSeniority) {
+		mSeniority = theSeniority;
+	}
+
 	/**
 	 * @{inheritDoc}
 	 */
 	@Override
 	public int hashCode() {
-		return Objects.hashCode(mName, mTitle, mDomain);
+		return Objects.hashCode(mName, mTitle, mDomain, mSeniority);
 	}
 
 	/**
@@ -75,6 +84,7 @@ public final class EmploymentInfo {
 
 			return Objects.equal(mName, aInfo.mName)
 				&& Objects.equal(mTitle, aInfo.mTitle)
+				&& Objects.equal(mSeniority, aInfo.mSeniority)
 				&& Objects.equal(mDomain, aInfo.mDomain);
 		}
 		else {
@@ -90,6 +100,7 @@ public final class EmploymentInfo {
 		return MoreObjects.toStringHelper("Employment")
 		                  .add("name", mName)
 		                  .add("title", mTitle)
+		                  .add("seniority", mSeniority)
 		                  .toString();
 	}
 }

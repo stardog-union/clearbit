@@ -27,15 +27,15 @@ sourceSets {
 }
 
 group = "com.complexible.clearbit"
-version = "0.1"
+version = "0.2"
 
 ext {
 	projectDescription = "Java implementation of the Clearbit API"
 	projectUrl = "https://github.com/complexible/clearbit"
 }
 
-sourceCompatibility = '1.7'
-targetCompatibility = '1.7'
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
 
 repositories {
 	mavenCentral()

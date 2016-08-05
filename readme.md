@@ -1,8 +1,8 @@
 # Clearbit Java API
 
-A basic Java implementation of the [Clearbit API](https://clearbit.com/docs).
+A basic Java implementation of V1 and V2 of the [Clearbit API](https://clearbit.com/docs).
 
-Current version is 0.1 on 2015-03-31.  Using [git flow](http://nvie.com/posts/a-successful-git-branching-model/)
+Current version is 0.2 on 2016-08-05.  Using [git flow](http://nvie.com/posts/a-successful-git-branching-model/)
 for development.
 
 Sorry, there is not much in the way of tests.  The current code was thrown together during a hack session as part of a
