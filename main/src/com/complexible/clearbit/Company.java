@@ -266,7 +266,7 @@ public class Company {
 	}
 
 	/**
-	 * @{inheritDoc}
+	 * {@inheritDoc}
 	 */
 	@Override
 	public int hashCode() {
@@ -274,7 +274,7 @@ public class Company {
 	}
 
 	/**
-	 * @{inheritDoc}
+	 * {@inheritDoc}
 	 */
 	@Override
 	public boolean equals(final Object theObj) {
@@ -293,7 +293,7 @@ public class Company {
 	}
 
 	/**
-	 * @{inheritDoc}
+	 * {@inheritDoc}
 	 */
 	@Override
 	public String toString() {

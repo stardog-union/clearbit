@@ -73,7 +73,7 @@ public final class Geo {
 	}
 
 	/**
-	 * @{inheritDoc}
+	 * @inheritDoc
 	 */
 	@Override
 	public int hashCode() {
@@ -81,7 +81,7 @@ public final class Geo {
 	}
 
 	/**
-	 * @{inheritDoc}
+	 * @inheritDoc
 	 */
 	@Override
 	public boolean equals(final Object theObj) {
@@ -102,7 +102,7 @@ public final class Geo {
 	}
 
 	/**
-	 * @{inheritDoc}
+	 * @inheritDoc
 	 */
 	@Override
 	public String toString() {

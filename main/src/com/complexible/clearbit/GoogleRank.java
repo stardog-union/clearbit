@@ -38,7 +38,7 @@ public final class GoogleRank {
 	}
 
 	/**
-	 * @{inheritDoc}
+	 * @inheritDoc
 	 */
 	@Override
 	public String toString() {
@@ -46,7 +46,7 @@ public final class GoogleRank {
 	}
 
 	/**
-	 * @{inheritDoc}
+	 * @inheritDoc
 	 */
 	@Override
 	public int hashCode() {
@@ -54,7 +54,7 @@ public final class GoogleRank {
 	}
 
 	/**
-	 * @{inheritDoc}
+	 * @inheritDoc
 	 */
 	@Override
 	public boolean equals(final Object theObj) {
